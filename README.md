@@ -192,7 +192,7 @@ EOF
 python scripts/generate_annotations.py \
     --repo-id organization-name/dataset-name \
     --model gemini-robotics-er-1.5-preview \
-    --fps 2
+    --fps-vlm 2
 ```
 
 For testing with a single episode, see `test/test_gemini_single_video.py`.

@@ -103,7 +103,7 @@ def validate_subtasks_file(dataset_dir: Path) -> Path:
 
 
 def process_episodes(dataset_dir: Path, 
-                     fps: int,
+                     fps_vlm: int,
                      model_name: str,
                      video_filename: str = "top.mp4"):
     """Process all episodes in the directory and generate annotations."""
@@ -116,7 +116,7 @@ def process_episodes(dataset_dir: Path,
         print(f"  {i}. {subtask}")
     print()
     
-    annotator = GeminiAnnotatorVLM(model_name=model_name, fps=fps)
+    annotator = GeminiAnnotatorVLM(model_name=model_name, fps=fps_vlm)
     
     episodes_dir = dataset_dir / "selected_episodes"
     
@@ -142,7 +142,7 @@ def process_episodes(dataset_dir: Path,
         print(f"Loaded {len(annotations)} existing annotations from {output_path}")
     
     print(f"\nProcessing {len(episode_dirs)} episodes...")
-    print(f"Model: {model_name} | FPS: {fps}")
+    print(f"Model: {model_name} | FPS: {fps_vlm}")
     print(f"Output: {output_path}\n")
     
     for episode_dir in tqdm(episode_dirs, desc="Annotating episodes"):
@@ -223,7 +223,7 @@ def main():
     )
     
     parser.add_argument(
-        "--fps",
+        "--fps-vlm",
         type=int,
         default=2,
         help="Frames per second for VLM processing (default: 2)"
@@ -257,7 +257,7 @@ def main():
     
     process_episodes(
         dataset_dir=dataset_dir,
-        fps=args.fps,
+        fps_vlm=args.fps_vlm,
         model_name=args.model,
         video_filename=args.video_filename
     )
