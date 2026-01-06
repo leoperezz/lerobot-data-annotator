@@ -4,12 +4,13 @@ LeRobot Data Annotator is a tool for automatically generating temporal subtask a
 
 ## Overview
 
-The tool processes LeRobot v3 datasets through a four-step pipeline:
+The tool processes LeRobot v3 datasets through a five-step pipeline:
 
 1. **Download** - Fetch datasets from HuggingFace
 2. **Parse** - Extract individual episodes and videos from dataset shards
 3. **Configure** - Define subtasks for annotation
 4. **Annotate** - Generate temporal subtask annotations using VLMs
+5. **Visualize** - Generate annotated videos with subtask labels overlaid
 
 ## Installation
 
@@ -150,6 +151,42 @@ The `annotations.json` file contains:
 - Task descriptions
 - Token usage statistics
 
+### 5. Generate Visualizations
+
+Generate annotated videos with subtask labels overlaid on each episode:
+
+```bash
+python scripts/generate_visualizations.py \
+    --repo-id organization-name/dataset-name
+```
+
+**Options:**
+- `--repo-id`: HuggingFace repository ID [Required]
+- `--data-dir`: Base data directory (default: `data`)
+- `--video-filename`: Name of video file in episode directories (default: `top.mp4`)
+
+**Note:** This script reads `annotations.json` and generates annotated videos for each episode. The annotated videos are saved in the respective episode directories within `selected_episodes/`.
+
+**Output Structure:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        ├── lerobot-dataset/
+        ├── selected_episodes/
+        │   ├── episode_000000/
+        │   │   ├── top.mp4
+        │   │   ├── metadata.json
+        │   │   └── annotated_video.mp4  ← Generated visualization
+        │   ├── episode_000001/
+        │   │   └── ...
+        │   └── ...
+        ├── subtasks.yaml
+        └── annotations.json
+```
+
+Each annotated video displays subtask names as text overlays at the bottom of the video during their respective time intervals.
+
 ## Supported Models
 
 The following Gemini models are supported:
@@ -193,6 +230,10 @@ python scripts/generate_annotations.py \
     --repo-id organization-name/dataset-name \
     --model gemini-robotics-er-1.5-preview \
     --fps-vlm 2
+
+# 5. Generate visualizations
+python scripts/generate_visualizations.py \
+    --repo-id organization-name/dataset-name
 ```
 
 For testing with a single episode, see `test/test_gemini_single_video.py`.
