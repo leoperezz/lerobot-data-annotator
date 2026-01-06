@@ -5,20 +5,22 @@ Maps episodes to tasks and extracts individual video segments from concatenated 
 
 Example usage:
     # Process all episodes
-    python utils/parse_dataset.py \\
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \\
-        --cameras observation.images.top observation.images.left
+    python utils/parse_dataset.py \
+        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+        --cameras observation.images.top \
     
     # Process specific episodes
-    python utils/parse_dataset.py \\
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \\
-        --cameras observation.images.top observation.images.left \\
+    python utils/parse_dataset.py \
+        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+        --cameras observation.images.top \
         --episodes 0 5 10 15
     
     # Process a range of episodes
-    python utils/parse_dataset.py \\
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \\
-        --episode-range 0 100
+    python utils/parse_dataset.py \
+        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+        --cameras observation.images.top \
+        --episode-range 0 20 \
+        
 """
 
 import json
