@@ -123,5 +123,4 @@ dmypy.json
 .pyre/
 
 # AutoAnnotator
-input/
-output/
+data/

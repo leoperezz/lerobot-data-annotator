@@ -5,22 +5,21 @@ Maps episodes to tasks and extracts individual video segments from concatenated 
 
 Example usage:
     # Process all episodes
-    python utils/parse_dataset.py \
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
-        --cameras observation.images.top \
+    python scripts/parse_dataset.py \
+        --repo-id organization-name/dataset-name \
+        --cameras observation.images.top
     
     # Process specific episodes
-    python utils/parse_dataset.py \
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+    python scripts/parse_dataset.py \
+        --repo-id organization-name/dataset-name \
         --cameras observation.images.top \
         --episodes 0 5 10 15
     
     # Process a range of episodes
-    python utils/parse_dataset.py \
-        --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+    python scripts/parse_dataset.py \
+        --repo-id organization-name/dataset-name \
         --cameras observation.images.top \
-        --episode-range 0 20 \
-        
+        --episode-range 0 20
 """
 
 import json
@@ -159,9 +158,15 @@ def parse_dataset(dataset_path: Path, cameras: list[str] = ["observation.images.
 def main():
     parser = argparse.ArgumentParser(description="Parse LeRobot v3 dataset and split into episodes.")
     parser.add_argument(
-        "--input-dir", 
+        "--repo-id", 
         required=True,
-        help="Path to the LeRobot dataset (must end with 'lerobot-dataset')"
+        help="HuggingFace repository ID (e.g., organization-name/dataset-name)"
+    )
+    parser.add_argument(
+        "--data-dir", 
+        type=str,
+        default="data",
+        help="Base data directory (default: data)"
     )
     parser.add_argument(
         "--cameras", 
@@ -197,8 +202,13 @@ def main():
         start, end = args.episode_range
         selected_episodes = set(range(start, end + 1))
     
-    input_path = Path(args.input_dir).resolve()
-    parse_dataset(input_path, args.cameras, selected_episodes)
+    dataset_path = Path(args.data_dir) / args.repo_id / "lerobot-dataset"
+    dataset_path = dataset_path.resolve()
+    
+    if not dataset_path.exists():
+        parser.error(f"Dataset not found at: {dataset_path}\nPlease run download_dataset.py first.")
+    
+    parse_dataset(dataset_path, args.cameras, selected_episodes)
 
 if __name__ == "__main__":
     main()

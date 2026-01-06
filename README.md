@@ -4,11 +4,12 @@ LeRobot Data Annotator is a tool for automatically generating temporal subtask a
 
 ## Overview
 
-The tool processes LeRobot v3 datasets through a three-step pipeline:
+The tool processes LeRobot v3 datasets through a four-step pipeline:
 
 1. **Download** - Fetch datasets from HuggingFace
 2. **Parse** - Extract individual episodes and videos from dataset shards
-3. **Annotate** - Generate temporal subtask annotations using VLMs
+3. **Configure** - Define subtasks for annotation
+4. **Annotate** - Generate temporal subtask annotations using VLMs
 
 ## Installation
 
@@ -32,14 +33,24 @@ Download a LeRobot dataset from HuggingFace:
 
 ```bash
 python scripts/download_dataset.py \
-    --repo-id lerobot/pick-and-place-fruits-to-basket \
-    --output-dir input
+    --repo-id organization-name/dataset-name
 ```
 
 **Options:**
-- `--repo-id`: HuggingFace repository ID
-- `--output-dir`: Base directory to save the dataset (default: `input`)
+- `--repo-id`: HuggingFace repository ID (e.g., `organization-name/dataset-name`) [Required]
+- `--data-dir`: Base data directory (default: `data`)
 - `--branch`: Optional branch/tag to download from
+
+**Output Structure:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        └── lerobot-dataset/
+            ├── data/
+            ├── meta/
+            └── videos/
+```
 
 ### 2. Parse Dataset
 
@@ -47,36 +58,97 @@ Extract individual episodes and videos from the dataset shards:
 
 ```bash
 python scripts/parse_dataset.py \
-    --input-dir input/pick-and-place-fruits-to-basket/lerobot-dataset \
+    --repo-id organization-name/dataset-name \
     --cameras observation.images.top
 ```
 
 **Options:**
-- `--input-dir`: Path to the LeRobot dataset directory (must end with `lerobot-dataset`)
+- `--repo-id`: HuggingFace repository ID [Required]
+- `--data-dir`: Base data directory (default: `data`)
 - `--cameras`: Camera keys to extract (default: `observation.images.top`)
 - `--episodes`: List of specific episode indices to process (e.g., `--episodes 0 5 10 15`)
 - `--episode-range`: Range of episodes to process (e.g., `--episode-range 0 20`)
 
 This script extracts videos and metadata for each episode into `selected_episodes/` directories.
 
-### 3. Generate Annotations
+**Expected Directory Structure After Parsing:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        ├── lerobot-dataset/
+        │   ├── data/
+        │   ├── meta/
+        │   └── videos/
+        └── selected_episodes/
+            ├── episode_000000/
+            │   ├── top.mp4
+            │   └── metadata.json
+            ├── episode_000001/
+            └── ...
+```
+
+### 3. Create Subtasks Configuration
+
+Before generating annotations, create a `subtasks.yaml` file in the dataset directory:
+
+```bash
+# Create subtasks.yaml in the dataset directory
+cat > data/organization-name/dataset-name/subtasks.yaml << EOF
+subtasks:
+  - pick up the object A
+  - place the object A in the target location
+  - pick up the object B
+  - place the object B in the target location
+EOF
+```
+
+**Required File Structure:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        ├── lerobot-dataset/
+        ├── selected_episodes/
+        └── subtasks.yaml  ← Create this file
+```
+
+### 4. Generate Annotations
 
 Generate temporal subtask annotations for episodes:
 
 ```bash
 python scripts/generate_annotations.py \
-    --input-dir input/pick-and-place-fruits-to-basket/selected_episodes \
+    --repo-id organization-name/dataset-name \
     --model gemini-robotics-er-1.5-preview \
     --fps 2
 ```
 
 **Options:**
-- `--input-dir`: Directory containing episode folders
-- `--model`: VLM model to use (see Supported Models below)
-- `--fps`: FPS for video processing (default: 1)
-- `--episodes`: Optional list of specific episodes to process
+- `--repo-id`: HuggingFace repository ID [Required]
+- `--data-dir`: Base data directory (default: `data`)
+- `--model`: VLM model to use (see Supported Models below, default: `gemini-robotics-er-1.5-preview`)
+- `--fps`: FPS for VLM video processing (default: 2)
+- `--video-filename`: Name of video file in episode directories (default: `top.mp4`)
 
-This script processes videos at scale, similar to the single-video test script, and generates annotated videos with subtask timestamps.
+**Note:** The script automatically looks for `subtasks.yaml` in the dataset directory and processes all episodes in `selected_episodes/`.
+
+**Output Structure:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        ├── lerobot-dataset/
+        ├── selected_episodes/
+        ├── subtasks.yaml
+        └── annotations.json  ← Generated output
+```
+
+The `annotations.json` file contains:
+- Temporal subtask annotations with start/end timestamps
+- Episode metadata (fps, duration, frame count)
+- Task descriptions
+- Token usage statistics
 
 ## Supported Models
 
@@ -95,9 +167,35 @@ The annotation process generates:
 - **Structured subtask data** with precise start/end timestamps for each subtask
 - **Metadata** including task descriptions and episode information
 
-## Example
+## Complete Example
 
-See `test/test_gemini_single_video.py` for an example of processing a single episode with annotation and visualization.
+Here's a complete workflow example:
+
+```bash
+# 1. Download dataset
+python scripts/download_dataset.py \
+    --repo-id organization-name/dataset-name
+
+# 2. Parse and extract episodes
+python scripts/parse_dataset.py \
+    --repo-id organization-name/dataset-name \
+    --cameras observation.images.top
+
+# 3. Create subtasks configuration
+cat > data/organization-name/dataset-name/subtasks.yaml << EOF
+subtasks:
+  - pick up the object A
+  - place the object A in the target location
+EOF
+
+# 4. Generate annotations
+python scripts/generate_annotations.py \
+    --repo-id organization-name/dataset-name \
+    --model gemini-robotics-er-1.5-preview \
+    --fps 2
+```
+
+For testing with a single episode, see `test/test_gemini_single_video.py`.
 
 ## License
 

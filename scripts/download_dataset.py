@@ -3,27 +3,27 @@
 Utility script to download a LeRobot dataset from HuggingFace.
 
 Example usage:
-    python utils/download_dataset.py \
-        --repo-id lerobot/pick-and-place-fruits-to-basket \
-        --output-dir input
+    python scripts/download_dataset.py \
+        --repo-id organization-name/dataset-name
     
-    python utils/download_dataset.py \
-        --repo-id lerobot/pick-and-place-fruits-to-basket \
-        --output-dir input \
-        --branch main
+    python scripts/download_dataset.py \
+        --repo-id organization-name/dataset-name \
+        --branch main \
+        --data-dir data
 """
 
 import argparse
 from pathlib import Path
 from huggingface_hub import snapshot_download
 
-def download_dataset(repo_id: str, base_output_dir: Path, branch: str | None = None):
+def download_dataset(repo_id: str, base_data_dir: Path, branch: str | None = None):
     """
-    Download a LeRobot dataset from HuggingFace using its URL.
+    Download a LeRobot dataset from HuggingFace.
+    Preserves the full repo_id structure (organization/dataset-name) in the directory path.
     """
-    dataset_name = repo_id.split("/")[-1]
-    output_dir = base_output_dir / dataset_name / "lerobot-dataset"
-    print(f"Downloading dataset {repo_id} to {output_dir}...")
+    output_dir = base_data_dir / repo_id / "lerobot-dataset"
+    print(f"Downloading dataset {repo_id}")
+    print(f"Destination: {output_dir}")
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
@@ -34,33 +34,36 @@ def download_dataset(repo_id: str, base_output_dir: Path, branch: str | None = N
         revision=branch,
     )
     
-    print(f"Dataset downloaded successfully to {output_dir}")
+    print(f"\n✓ Dataset downloaded successfully to: {output_dir}")
 
 def main():
     parser = argparse.ArgumentParser(description="Download a LeRobot dataset from HuggingFace.")
     parser.add_argument(
         "--repo-id", 
         type=str,
-        help="HuggingFace repository ID"
+        required=True,
+        help="HuggingFace repository ID (e.g., organization-name/dataset-name)"
     )
     parser.add_argument(
-        "--output-dir", 
+        "--data-dir", 
         type=str, 
-        default="input",
-        help="Base local directory to save the dataset"
+        default="data",
+        help="Base data directory (default: data)"
     )
     parser.add_argument(
         "--branch", 
         type=str, 
         default=None,
-        help="Branch to download the dataset from"
+        help="Branch to download from (optional)"
     )
     
     args = parser.parse_args()
     
-    download_dataset(repo_id=args.repo_id,
-                    base_output_dir=Path(args.output_dir),
-                    branch=args.branch)
+    download_dataset(
+        repo_id=args.repo_id,
+        base_data_dir=Path(args.data_dir),
+        branch=args.branch
+    )
 
 if __name__ == "__main__":
     main()
