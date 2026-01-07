@@ -14,7 +14,7 @@ import json
 import argparse
 from pathlib import Path
 from tqdm import tqdm
-from annotator.structured import Subtasks, Subtask
+from annotator.structured import Annotation
 from annotator.utils.visualization import create_annotated_video
 
 
@@ -31,17 +31,19 @@ def load_annotations(annotations_path: Path) -> dict:
         return data.get("annotations", {})
 
 
-def create_subtasks_from_dict(subtasks_data: list[dict]) -> Subtasks:
-    """Convert list of subtask dicts to Subtasks object."""
-    subtask_list = [
-        Subtask(
-            name=subtask["name"],
-            start_time=subtask["start_time"],
-            end_time=subtask["end_time"]
+def create_annotations_from_dict(annotations_data: list[dict]) -> list[Annotation]:
+    """Convert list of annotation dicts to Annotation objects."""
+    annotation_list = [
+        Annotation(
+            name=annotation["name"],
+            start_time=annotation["start_time"],
+            end_time=annotation["end_time"],
+            start_frame=annotation["start_frame"],
+            end_frame=annotation["end_frame"]
         )
-        for subtask in subtasks_data
+        for annotation in annotations_data
     ]
-    return Subtasks(subtasks=subtask_list)
+    return annotation_list
 
 
 def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4"):
@@ -84,10 +86,10 @@ def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4"):
             skipped += 1
             continue
         
-        # Check if subtasks exist
-        subtasks_data = episode_data.get("subtasks", [])
-        if not subtasks_data:
-            tqdm.write(f"Warning: No subtasks found for {episode_id}, skipping")
+        # Check if annotations exist
+        annotations_data = episode_data.get("annotations", [])
+        if not annotations_data:
+            tqdm.write(f"Warning: No annotations found for {episode_id}, skipping")
             skipped += 1
             continue
         
@@ -97,8 +99,8 @@ def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4"):
             if fps is None:
                 fps = 30
             
-            # Convert subtasks from dict format to Subtasks object
-            subtasks = create_subtasks_from_dict(subtasks_data)
+            # Convert annotations from dict format to Annotation objects
+            annotations = create_annotations_from_dict(annotations_data)
             
             # Generate output filename (similar to test file)
             output_path = episode_dir / f"annotated_video.mp4"
@@ -106,7 +108,7 @@ def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4"):
             # Create annotated video
             create_annotated_video(
                 video_path=video_path,
-                subtasks=subtasks,
+                annotations=annotations,
                 output_path=output_path,
                 fps=fps
             )

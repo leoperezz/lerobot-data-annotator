@@ -19,9 +19,86 @@ from pathlib import Path
 from typing import List, Optional
 import yaml
 from tqdm import tqdm
+import cv2
 from annotator.models.base import AnnotatorVLM
 from annotator.models.gemini import GeminiAnnotatorVLM
-from annotator.utils.processors import shift_subtask_times
+from annotator.utils.processors import shift_subtask_times, time_to_seconds
+from annotator.structured import Annotation, Subtasks
+
+
+def get_video_info(video_path: Path) -> tuple[float, int]:
+    """
+    Get video FPS and total frame count.
+    
+    Returns:
+        tuple: (fps, total_frames)
+    """
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        raise ValueError(f"Could not open video: {video_path}")
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    
+    return fps, total_frames
+
+
+def convert_subtasks_to_annotations(subtasks: Subtasks, video_path: Path) -> List[Annotation]:
+    """
+    Convert Subtasks with times to Annotations with frames.
+    
+    Rules:
+    - First subtask starts at frame 0
+    - Last subtask ends at the last frame of the video
+    - No duplicate frames between consecutive subtasks (end_frame[i] != start_frame[i+1])
+    
+    Args:
+        subtasks: Subtasks object with start_time and end_time
+        video_path: Path to the video file
+        
+    Returns:
+        List of Annotation objects with frame information
+    """
+    fps, total_frames = get_video_info(video_path)
+    annotations = []
+    
+    for i, subtask in enumerate(subtasks.subtasks):
+        # Convert times to seconds
+        start_seconds = time_to_seconds(subtask.start_time)
+        end_seconds = time_to_seconds(subtask.end_time)
+        
+        # Convert seconds to frames
+        start_frame = int(start_seconds * fps)
+        end_frame = int(end_seconds * fps)
+        
+        # Apply rules
+        if i == 0:
+            # First subtask always starts at frame 0
+            start_frame = 0
+        
+        if i == len(subtasks.subtasks) - 1:
+            # Last subtask always ends at the last frame
+            end_frame = total_frames - 1
+        
+        # Ensure no duplicates with previous subtask
+        if i > 0 and start_frame <= annotations[i-1].end_frame:
+            start_frame = annotations[i-1].end_frame + 1
+        
+        # Ensure end_frame is at least start_frame
+        if end_frame < start_frame:
+            end_frame = start_frame
+        
+        annotation = Annotation(
+            name=subtask.name,
+            start_time=subtask.start_time,
+            end_time=subtask.end_time,
+            start_frame=start_frame,
+            end_frame=end_frame
+        )
+        annotations.append(annotation)
+    
+    return annotations
 
 
 def load_subtasks_from_yaml(yaml_path: Path) -> List[str]:
@@ -169,6 +246,9 @@ def process_episodes(dataset_dir: Path,
                 subtasks=subtasks
             )
             
+            # Convert subtasks to annotations with frame information
+            annotation_list = convert_subtasks_to_annotations(result, video_path)
+            
             annotations[episode_id] = {
                 "episode_index": metadata.get("episode_index"),
                 "task_index": metadata.get("task_index"),
@@ -176,7 +256,7 @@ def process_episodes(dataset_dir: Path,
                 "length_frames": metadata.get("length_frames"),
                 "fps": metadata.get("fps"),
                 "duration_sec": metadata.get("duration_sec"),
-                "subtasks": [subtask.model_dump() for subtask in result.subtasks],
+                "annotations": [annotation.model_dump() for annotation in annotation_list],
                 "metadata": metadata
             }
             

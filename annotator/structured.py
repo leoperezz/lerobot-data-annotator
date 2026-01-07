@@ -7,3 +7,10 @@ class Subtask(BaseModel):
 
 class Subtasks(BaseModel):
     subtasks: list[Subtask]
+
+class Annotation(BaseModel):
+    name: str
+    start_time: str
+    end_time: str
+    start_frame: int
+    end_frame: int

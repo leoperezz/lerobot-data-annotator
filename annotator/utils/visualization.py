@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 from moviepy import VideoFileClip, TextClip, CompositeVideoClip
-from annotator.structured import Subtasks, Subtask
+from annotator.structured import Subtasks, Subtask, Annotation
 
 
 def parse_time_to_seconds(time_str: str) -> float:
@@ -44,16 +44,16 @@ def parse_time_to_seconds(time_str: str) -> float:
 
 def create_annotated_video(
     video_path: Union[str, Path], 
-    subtasks: Subtasks, 
+    annotations: Union[Subtasks, List[Annotation]], 
     output_path: Union[str, Path], 
     fps: int = 30
 ) -> None:
     """
-    Creates a new video with text overlays showing subtask names during their duration.
+    Creates a new video with text overlays showing subtask/annotation names during their duration.
 
     Args:
         video_path: Path to the original video
-        subtasks: Subtasks object containing list of Subtask objects
+        annotations: Either a Subtasks object or a list of Annotation objects
         output_path: Path where the annotated video will be saved
         fps: Frames per second of the video (default: 30)
     """
@@ -64,17 +64,25 @@ def create_annotated_video(
     # Load the original video
     video = VideoFileClip(video_path)
     
-    # Create text clips for each subtask
+    # Handle both Subtasks and List[Annotation] for backward compatibility
+    if isinstance(annotations, Subtasks):
+        items = annotations.subtasks
+    elif isinstance(annotations, list):
+        items = annotations
+    else:
+        raise TypeError(f"annotations must be Subtasks or List[Annotation], got {type(annotations)}")
+    
+    # Create text clips for each annotation/subtask
     text_clips = []
-    for subtask in subtasks.subtasks:
+    for item in items:
         # Parse start_time and end_time from strings to floats
         try:
-            start_time = parse_time_to_seconds(subtask.start_time)
-            end_time = parse_time_to_seconds(subtask.end_time)
+            start_time = parse_time_to_seconds(item.start_time)
+            end_time = parse_time_to_seconds(item.end_time)
         except ValueError as e:
             raise ValueError(
-                f"Could not parse time values for subtask '{subtask.name}': "
-                f"start_time='{subtask.start_time}', end_time='{subtask.end_time}'. "
+                f"Could not parse time values for annotation '{item.name}': "
+                f"start_time='{item.start_time}', end_time='{item.end_time}'. "
                 f"Error: {e}"
             )
         
@@ -92,13 +100,14 @@ def create_annotated_video(
             )
             end_time = video.duration
         
-        # Create a text clip with the subtask name
+        # Create a text clip with the annotation name
         # Using 'DejaVu-Sans' which is commonly available on Linux systems
         # or None to use the default font
+        # Reduced font size from 50 to 30 for smaller text
         try:
             txt_clip = TextClip(
-                text=subtask.name,
-                font_size=50,
+                text=item.name,
+                font_size=30,
                 color='white',
                 bg_color='black',
                 font='DejaVu-Sans',
@@ -109,8 +118,8 @@ def create_annotated_video(
             # Fallback: try without specifying font (use default)
             print(f"Warning: Could not use DejaVu-Sans font, using default. Error: {e}")
             txt_clip = TextClip(
-                text=subtask.name,
-                font_size=50,
+                text=item.name,
+                font_size=30,
                 color='white',
                 bg_color='black',
                 method='caption',

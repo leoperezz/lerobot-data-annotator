@@ -4,13 +4,15 @@ LeRobot Data Annotator is a tool for automatically generating temporal subtask a
 
 ## Overview
 
-The tool processes LeRobot v3 datasets through a five-step pipeline:
+The tool processes LeRobot v3 datasets through a seven-step pipeline:
 
 1. **Download** - Fetch datasets from HuggingFace
 2. **Parse** - Extract individual episodes and videos from dataset shards
 3. **Configure** - Define subtasks for annotation
 4. **Annotate** - Generate temporal subtask annotations using VLMs
 5. **Visualize** - Generate annotated videos with subtask labels overlaid
+6. **Process** - Update dataset with subtask-level task indices
+7. **Upload** - Upload processed dataset to HuggingFace
 
 ## Installation
 
@@ -24,7 +26,10 @@ Create a `.env` file in the project root with your API keys:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+HF_TOKEN=your_huggingface_token_here
 ```
+
+**Note:** `HF_TOKEN` is required for uploading datasets to HuggingFace Hub.
 
 ## Workflow
 
@@ -187,6 +192,70 @@ data/
 
 Each annotated video displays subtask names as text overlays at the bottom of the video during their respective time intervals.
 
+### 6. Process Annotations
+
+Process annotations and update the LeRobot dataset with subtask-level task indices:
+
+```bash
+python scripts/process_annotations.py \
+    --repo-id organization-name/dataset-name
+```
+
+**Options:**
+- `--repo-id`: HuggingFace repository ID [Required]
+- `--data-dir`: Base data directory (default: `data`)
+- `--output-name`: Name of the output directory (default: `output`)
+
+**What this script does:**
+1. Clones the `lerobot-dataset` directory to an `output` directory
+2. Loads annotations from `annotations.json`
+3. Builds a mapping of unique subtasks to task indices
+4. Updates `meta/tasks.parquet` with all unique subtasks
+5. Updates data parquet files (`data/chunk-xxx/file-xxx.parquet`) to assign correct `task_index` to each frame based on subtask annotations
+
+**Output Structure:**
+```
+data/
+└── organization-name/
+    └── dataset-name/
+        ├── lerobot-dataset/  (original)
+        ├── output/  ← Processed dataset with subtask task indices
+        │   ├── data/
+        │   │   └── chunk-000/
+        │   │       └── file-xxx.parquet  (updated with task_index)
+        │   ├── meta/
+        │   │   ├── tasks.parquet  (updated with all subtasks)
+        │   │   └── episodes/
+        │   └── videos/
+        ├── selected_episodes/
+        ├── subtasks.yaml
+        └── annotations.json
+```
+
+**Note:** The script assigns a unique `task_index` to each unique subtask name. Frames in the data parquet files are updated to reflect the correct `task_index` based on their corresponding subtask annotation.
+
+### 7. Upload Dataset
+
+Upload the processed dataset to HuggingFace Hub:
+
+```bash
+python scripts/upload_dataset.py \
+    --repo-id organization-name/dataset-name \
+    --new-repo-id organization-name/dataset-name-annotated \
+    --branch v3.0
+```
+
+**Options:**
+- `--repo-id`: Original HuggingFace repository ID [Required]
+- `--new-repo-id`: Destination HuggingFace repository ID [Required]
+- `--data-dir`: Base data directory (default: `data`)
+- `--output-name`: Name of the output directory (default: `output`)
+- `--branch`: Branch to upload to (default: `main`)
+- `--private`: Make the repository private (flag)
+- `--commit-message`: Custom commit message for the upload
+
+**Note:** This script requires `HF_TOKEN` in your `.env` file. It uploads the `output` directory created by `process_annotations.py` to the specified HuggingFace repository.
+
 ## Supported Models
 
 The following Gemini models are supported:
@@ -234,6 +303,16 @@ python scripts/generate_annotations.py \
 # 5. Generate visualizations
 python scripts/generate_visualizations.py \
     --repo-id organization-name/dataset-name
+
+# 6. Process annotations and update dataset
+python scripts/process_annotations.py \
+    --repo-id organization-name/dataset-name
+
+# 7. Upload processed dataset to HuggingFace
+python scripts/upload_dataset.py \
+    --repo-id organization-name/dataset-name \
+    --new-repo-id organization-name/dataset-name-annotated \
+    --branch v3.0
 ```
 
 For testing with a single episode, see `test/test_gemini_single_video.py`.
