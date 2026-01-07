@@ -104,47 +104,64 @@ def upload_dataset(repo_id: str,
         print(f"Error creating repo: {e}")
         return False
     
-    # Create branch if it doesn't exist (and it's not 'main')
+    # Determine branches to upload to
+    branches_to_upload = [branch]
     if branch != "main":
-        print(f"Checking/creating branch: {branch}")
+        branches_to_upload.append("main")
+    
+    # Create branches if they don't exist
+    for branch_name in branches_to_upload:
+        if branch_name != "main":
+            print(f"Checking/creating branch: {branch_name}")
+            try:
+                api.create_branch(
+                    repo_id=new_repo_id,
+                    repo_type="dataset",
+                    branch=branch_name,
+                    token=token
+                )
+                print(f"✓ Branch '{branch_name}' created")
+            except Exception as e:
+                if "already exists" in str(e).lower() or "reference already exists" in str(e).lower():
+                    print(f"Branch '{branch_name}' already exists")
+                else:
+                    print(f"Note: Could not create branch (might already exist): {e}")
+    
+    # Upload the dataset to each branch
+    success = True
+    for branch_name in branches_to_upload:
+        print(f"\n{'='*60}")
+        print(f"Uploading to branch: {branch_name}")
+        print(f"{'='*60}")
+        print(f"Uploading dataset to {new_repo_id}...")
+        print("(This may take several minutes depending on size...)")
+        
         try:
-            api.create_branch(
+            url = upload_folder(
+                folder_path=str(dataset_path),
                 repo_id=new_repo_id,
                 repo_type="dataset",
-                branch=branch,
-                token=token
+                commit_message=commit_message,
+                revision=branch_name,
+                token=token,
             )
-            print(f"✓ Branch '{branch}' created")
+            
+            print(f"\n✓ Dataset uploaded successfully to branch '{branch_name}'!")
+            print(f"   URL: {url}")
+            
         except Exception as e:
-            if "already exists" in str(e).lower() or "reference already exists" in str(e).lower():
-                print(f"Branch '{branch}' already exists")
-            else:
-                print(f"Note: Could not create branch (might already exist): {e}")
+            print(f"\n✗ Error uploading to branch '{branch_name}': {e}")
+            import traceback
+            traceback.print_exc()
+            success = False
     
-    # Upload the dataset
-    print(f"\nUploading dataset to {new_repo_id} (branch: {branch})...")
-    print("(This may take several minutes depending on size...)")
+    if success:
+        print(f"\n{'='*60}")
+        print(f"All uploads completed successfully")
+        print(f"{'='*60}")
+        print(f"View at: https://huggingface.co/datasets/{new_repo_id}")
     
-    try:
-        url = upload_folder(
-            folder_path=str(dataset_path),
-            repo_id=new_repo_id,
-            repo_type="dataset",
-            commit_message=commit_message,
-            revision=branch,
-            token=token,
-        )
-        
-        print(f"\n✓ Dataset uploaded successfully!")
-        print(f"   URL: {url}")
-        print(f"   View at: https://huggingface.co/datasets/{new_repo_id}")
-        return True
-        
-    except Exception as e:
-        print(f"\nError during upload: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    return success
 
 
 def main():
@@ -216,12 +233,17 @@ def main():
             f"Please run process_annotations.py first to create the output directory."
         )
     
+    # Determine branches to upload
+    branches_to_upload = [args.branch]
+    if args.branch != "main":
+        branches_to_upload.append("main")
+    
     print("=" * 80)
     print("Uploading Dataset to HuggingFace Hub")
     print("=" * 80)
     print(f"Source: {output_dataset_dir}")
     print(f"Destination: {args.new_repo_id}")
-    print(f"Branch: {args.branch}")
+    print(f"Branches: {', '.join(branches_to_upload)}")
     print(f"Private: {'Yes' if args.private else 'No'}")
     print()
     
