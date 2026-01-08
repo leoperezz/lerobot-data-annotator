@@ -143,7 +143,8 @@ def annotate_episode_with_retry(annotator: GeminiAnnotatorVLM,
                 task_description=task_description,
                 names_subtasks=subtasks
             )
-            return shift_subtask_times(result, "00:01")
+            return result
+            #return shift_subtask_times(result, "00:01")
         except Exception as e:
             if attempt < max_retries - 1:
                 print(f"\nError on attempt {attempt + 1}/{max_retries}: {e}")

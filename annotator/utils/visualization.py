@@ -75,16 +75,22 @@ def create_annotated_video(
     # Create text clips for each annotation/subtask
     text_clips = []
     for item in items:
-        # Parse start_time and end_time from strings to floats
-        try:
-            start_time = parse_time_to_seconds(item.start_time)
-            end_time = parse_time_to_seconds(item.end_time)
-        except ValueError as e:
-            raise ValueError(
-                f"Could not parse time values for annotation '{item.name}': "
-                f"start_time='{item.start_time}', end_time='{item.end_time}'. "
-                f"Error: {e}"
-            )
+        # Use start_frame and end_frame if available (Annotation objects), otherwise fall back to time parsing
+        if hasattr(item, 'start_frame') and hasattr(item, 'end_frame'):
+            # Calculate time from frames
+            start_time = item.start_frame / fps
+            end_time = item.end_frame / fps
+        else:
+            # Fallback: Parse start_time and end_time from strings to floats (for Subtask objects)
+            try:
+                start_time = parse_time_to_seconds(item.start_time)
+                end_time = parse_time_to_seconds(item.end_time)
+            except ValueError as e:
+                raise ValueError(
+                    f"Could not parse time values for annotation '{item.name}': "
+                    f"start_time='{item.start_time}', end_time='{item.end_time}'. "
+                    f"Error: {e}"
+                )
         
         # Validate time range
         if start_time < 0:
@@ -110,7 +116,6 @@ def create_annotated_video(
                 font_size=30,
                 color='white',
                 bg_color='black',
-                font='DejaVu-Sans',
                 method='caption',
                 size=(video.w, None)
             )

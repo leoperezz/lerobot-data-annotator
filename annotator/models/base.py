@@ -7,6 +7,7 @@ class AnnotatorVLM(ABC):
     
     SUPPORTED_MODELS = [
         "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
         "gemini-2.5-pro",
         "gemini-robotics-er-1.5-preview",
         "gemini-3-flash-preview"
