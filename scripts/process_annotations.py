@@ -45,6 +45,32 @@ def load_annotations(annotations_path: Path) -> dict:
     return data.get('annotations', {})
 
 
+def build_general_task_mapping(annotations: dict) -> Dict[str, int]:
+    """
+    Build a mapping from unique general task descriptions to task indices.
+    
+    Returns:
+        Dict mapping general task descriptions to task indices (starting from 0)
+    """
+    unique_general_tasks = []
+    general_task_to_index = {}
+    
+    # Collect all unique general task descriptions in order of first appearance
+    for episode_id in sorted(annotations.keys()):
+        episode_data = annotations[episode_id]
+        task_description = episode_data['task_description']
+        if task_description not in general_task_to_index:
+            general_task_to_index[task_description] = len(unique_general_tasks)
+            unique_general_tasks.append(task_description)
+    
+    print(f"\nFound {len(unique_general_tasks)} unique general task(s):")
+    for i, task in enumerate(unique_general_tasks):
+        print(f"  {i}: {task}")
+    print()
+    
+    return general_task_to_index
+
+
 def build_subtask_mapping(annotations: dict) -> Dict[str, int]:
     """
     Build a mapping from unique subtask names to task indices.
@@ -64,12 +90,34 @@ def build_subtask_mapping(annotations: dict) -> Dict[str, int]:
                 subtask_to_index[subtask_name] = len(unique_subtasks)
                 unique_subtasks.append(subtask_name)
     
-    print(f"\nFound {len(unique_subtasks)} unique subtasks:")
+    print(f"Found {len(unique_subtasks)} unique subtasks:")
     for i, subtask in enumerate(unique_subtasks):
         print(f"  {i}: {subtask}")
     print()
     
     return subtask_to_index
+
+
+def update_general_tasks_parquet(dataset_dir: Path, general_task_mapping: Dict[str, int]):
+    """
+    Create general_tasks.parquet with all unique general tasks.
+    
+    Creates a new general_tasks.parquet with:
+    - Index: general task description
+    - Column: task_index
+    """
+    general_tasks_path = dataset_dir / "meta" / "general_tasks.parquet"
+    
+    print(f"Creating {general_tasks_path}...")
+    
+    # Create DataFrame with general task names as index and task_index as column
+    general_tasks_df = pd.DataFrame({
+        'task_index': list(general_task_mapping.values())
+    }, index=list(general_task_mapping.keys()))
+    
+    # Save to parquet
+    general_tasks_df.to_parquet(general_tasks_path)
+    print(f"✓ Created general_tasks.parquet with {len(general_task_mapping)} general task(s)")
 
 
 def update_tasks_parquet(dataset_dir: Path, subtask_mapping: Dict[str, int]):
@@ -121,15 +169,17 @@ def load_episode_metadata(dataset_dir: Path) -> pd.DataFrame:
 def update_data_parquets(dataset_dir: Path, 
                          annotations: dict, 
                          subtask_mapping: Dict[str, int],
+                         general_task_mapping: Dict[str, int],
                          episodes_metadata: pd.DataFrame):
     """
-    Update data parquet files with correct task_index for each frame.
+    Update data parquet files with correct task_index and general_task_index for each frame.
     
     For each episode in annotations:
     1. Find which data parquet file contains it
     2. Load the parquet file
     3. Update task_index for frames corresponding to each subtask
-    4. Save the modified parquet file
+    4. Add general_task_index column based on the episode's general task
+    5. Save the modified parquet file
     """
     print("\nUpdating data parquet files...")
     
@@ -178,7 +228,11 @@ def update_data_parquets(dataset_dir: Path,
         # Load the parquet file
         df = pd.read_parquet(parquet_path)
         
-        # Update task_index for each episode in this file
+        # Add general_task_index column if it doesn't exist
+        if 'general_task_index' not in df.columns:
+            df['general_task_index'] = -1  # Initialize with -1
+        
+        # Update task_index and general_task_index for each episode in this file
         for episode_info in episodes_in_file:
             episode_index = episode_info['episode_index']
             episode_data = episode_info['episode_data']
@@ -192,6 +246,11 @@ def update_data_parquets(dataset_dir: Path,
             if len(episode_rows) == 0:
                 tqdm.write(f"Warning: No rows found for episode {episode_index} in {parquet_path}")
                 continue
+            
+            # Set general_task_index for all frames in this episode
+            task_description = episode_data['task_description']
+            general_task_idx = general_task_mapping[task_description]
+            df.loc[episode_mask, 'general_task_index'] = general_task_idx
             
             # The frame_index in the parquet corresponds to the frame in the episode
             # For each subtask annotation, update the task_index
@@ -216,7 +275,7 @@ def update_data_parquets(dataset_dir: Path,
         # Save the updated parquet file
         df.to_parquet(parquet_path, index=False)
     
-    print("✓ Updated all data parquet files")
+    print("✓ Updated all data parquet files with task_index and general_task_index")
 
 
 def main():
@@ -285,24 +344,31 @@ def main():
     annotations = load_annotations(annotations_path)
     print(f"✓ Loaded annotations for {len(annotations)} episodes")
     
-    # Step 3: Build subtask mapping
+    # Step 3: Build general task mapping
+    general_task_mapping = build_general_task_mapping(annotations)
+    
+    # Step 4: Build subtask mapping
     subtask_mapping = build_subtask_mapping(annotations)
     
-    # Step 4: Update tasks.parquet
+    # Step 5: Update general_tasks.parquet
+    update_general_tasks_parquet(output_dataset_dir, general_task_mapping)
+    
+    # Step 6: Update tasks.parquet
     update_tasks_parquet(output_dataset_dir, subtask_mapping)
     
-    # Step 5: Load episode metadata
+    # Step 7: Load episode metadata
     print("\nLoading episode metadata...")
     episodes_metadata = load_episode_metadata(output_dataset_dir)
     print(f"✓ Loaded metadata for {len(episodes_metadata)} episodes")
     
-    # Step 6: Update data parquets
-    update_data_parquets(output_dataset_dir, annotations, subtask_mapping, episodes_metadata)
+    # Step 8: Update data parquets
+    update_data_parquets(output_dataset_dir, annotations, subtask_mapping, general_task_mapping, episodes_metadata)
     
     print("\n" + "=" * 80)
     print("✓ Processing complete!")
     print("=" * 80)
     print(f"\nUpdated dataset saved to: {output_dataset_dir}")
+    print(f"Total general tasks: {len(general_task_mapping)}")
     print(f"Total subtasks: {len(subtask_mapping)}")
     print(f"Processed episodes: {len(annotations)}")
     print()
