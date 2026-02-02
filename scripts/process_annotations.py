@@ -98,6 +98,39 @@ def build_subtask_mapping(annotations: dict) -> Dict[str, int]:
     return subtask_to_index
 
 
+def update_info_json(dataset_dir: Path, num_general_tasks: int):
+    """
+    Update info.json to include general_task_index feature.
+    
+    Adds the general_task_index column specification to the features section.
+    """
+    info_path = dataset_dir / "meta" / "info.json"
+    
+    if not info_path.exists():
+        print(f"Warning: info.json not found at {info_path}, skipping update")
+        return
+    
+    print(f"Updating {info_path}...")
+    
+    # Load existing info.json
+    with open(info_path, 'r') as f:
+        info_data = json.load(f)
+    
+    # Add general_task_index to features if not already present
+    if 'general_task_index' not in info_data.get('features', {}):
+        info_data['features']['general_task_index'] = {
+            "dtype": "int64",
+            "shape": [1],
+            "names": None
+        }
+    
+    # Save updated info.json with proper formatting
+    with open(info_path, 'w') as f:
+        json.dump(info_data, f, indent=4)
+    
+    print(f"✓ Updated info.json with general_task_index feature")
+
+
 def update_general_tasks_parquet(dataset_dir: Path, general_task_mapping: Dict[str, int]):
     """
     Create general_tasks.parquet with all unique general tasks.
@@ -363,6 +396,9 @@ def main():
     
     # Step 8: Update data parquets
     update_data_parquets(output_dataset_dir, annotations, subtask_mapping, general_task_mapping, episodes_metadata)
+    
+    # Step 9: Update info.json with general_task_index feature
+    update_info_json(output_dataset_dir, len(general_task_mapping))
     
     print("\n" + "=" * 80)
     print("✓ Processing complete!")
