@@ -213,11 +213,14 @@ def update_data_parquets(dataset_dir: Path,
     3. Update task_index for frames corresponding to each subtask
     4. Add general_task_index column based on the episode's general task
     5. Save the modified parquet file
+    
+    For ALL parquet files (even those without annotated episodes):
+    - Initialize general_task_index to 0 (default) to ensure no null values
     """
     print("\nUpdating data parquet files...")
     
     # Group episodes by their data file location
-    files_to_update = {}  # (chunk_idx, file_idx) -> [(episode_index, episode_data), ...]
+    annotated_files = {}  # (chunk_idx, file_idx) -> [(episode_index, episode_data), ...]
     
     for episode_id in sorted(annotations.keys()):
         episode_data = annotations[episode_id]
@@ -238,34 +241,62 @@ def update_data_parquets(dataset_dir: Path,
         dataset_to_index = int(episode_meta['dataset_to_index'])
         
         key = (chunk_idx, file_idx)
-        if key not in files_to_update:
-            files_to_update[key] = []
+        if key not in annotated_files:
+            annotated_files[key] = []
         
-        files_to_update[key].append({
+        annotated_files[key].append({
             'episode_index': episode_index,
             'episode_data': episode_data,
             'dataset_from_index': dataset_from_index,
             'dataset_to_index': dataset_to_index
         })
     
-    print(f"Need to update {len(files_to_update)} data parquet file(s)")
+    # Find ALL parquet files in the dataset
+    data_dir = dataset_dir / "data"
+    all_parquet_files = sorted(list(data_dir.rglob("file-*.parquet")))
+    
+    print(f"Found {len(all_parquet_files)} total data parquet file(s)")
+    print(f"Files with annotated episodes: {len(annotated_files)}")
+    print(f"Files without annotated episodes: {len(all_parquet_files) - len(annotated_files)}")
     
     # Process each data parquet file
-    for (chunk_idx, file_idx), episodes_in_file in tqdm(files_to_update.items(), desc="Updating data files"):
-        parquet_path = dataset_dir / "data" / f"chunk-{chunk_idx:03d}" / f"file-{file_idx:03d}.parquet"
+    for parquet_path in tqdm(all_parquet_files, desc="Updating data files"):
+        # Extract chunk_idx and file_idx from path
+        # Path format: .../data/chunk-XXX/file-YYY.parquet
+        file_name = parquet_path.stem  # file-YYY
+        chunk_name = parquet_path.parent.name  # chunk-XXX
         
-        if not parquet_path.exists():
-            print(f"Warning: Data parquet not found: {parquet_path}")
-            continue
+        file_idx = int(file_name.split('-')[1])
+        chunk_idx = int(chunk_name.split('-')[1])
+        
+        key = (chunk_idx, file_idx)
+        episodes_in_file = annotated_files.get(key, [])
+        parquet_path = dataset_dir / "data" / f"chunk-{chunk_idx:03d}" / f"file-{file_idx:03d}.parquet"
         
         # Load the parquet file
         df = pd.read_parquet(parquet_path)
         
-        # Add general_task_index column if it doesn't exist
-        if 'general_task_index' not in df.columns:
-            df['general_task_index'] = -1  # Initialize with -1
+        # Initialize task_index with 0 for all frames (ensuring no nulls)
+        df['task_index'] = pd.Series(0, index=df.index, dtype='int64')
         
-        # Update task_index and general_task_index for each episode in this file
+        # Initialize general_task_index with 0 for all frames (ensuring no nulls)
+        # Default to 0 (first general task) for any episodes not in annotations
+        df['general_task_index'] = pd.Series(0, index=df.index, dtype='int64')
+        
+        # If this file has no annotated episodes, just save it with defaults and continue
+        if not episodes_in_file:
+            df.to_parquet(parquet_path, index=False)
+            continue
+        
+        # Get all unique episodes in this file
+        all_episodes_in_file = df['episode_index'].unique()
+        annotated_episodes = set(ep['episode_index'] for ep in episodes_in_file)
+        unannotated_episodes = set(all_episodes_in_file) - annotated_episodes
+        
+        if unannotated_episodes:
+            tqdm.write(f"Info: {len(unannotated_episodes)} unannotated episode(s) in {parquet_path.name}, assigned general_task_index=0")
+        
+        # Update task_index and general_task_index for each annotated episode in this file
         for episode_info in episodes_in_file:
             episode_index = episode_info['episode_index']
             episode_data = episode_info['episode_data']
