@@ -99,3 +99,51 @@ def shift_subtask_times(subtasks: Subtasks, gap: str) -> Subtasks:
             subtasks.subtasks[i].end_time = seconds_to_time(new_end_seconds, time_format)
     
     return subtasks
+
+
+def distribute_gaps_between_annotations(annotations: list) -> list:
+    """
+    Distribuye el espacio en blanco entre subtareas consecutivas ajustando los frames.
+    
+    Para cada par de subtareas consecutivas:
+    - subtask 1: [a, b]
+    - subtask 2: [c, d]
+    - gap = c - b
+    - r = gap / 2
+    - nueva subtask 1: [a, b + r]
+    - nueva subtask 2: [c - r, d]
+    
+    Args:
+        annotations: Lista de diccionarios con las anotaciones, cada una debe tener
+                    'start_frame' y 'end_frame'
+    
+    Returns:
+        Lista de anotaciones con frames ajustados
+    """
+    if len(annotations) <= 1:
+        return annotations
+    
+    # Crear copia para no modificar el original
+    adjusted_annotations = [ann.copy() for ann in annotations]
+    
+    for i in range(len(adjusted_annotations) - 1):
+        current = adjusted_annotations[i]
+        next_task = adjusted_annotations[i + 1]
+        
+        b = current['end_frame']
+        c = next_task['start_frame']
+        
+        # Calcular el gap entre tareas
+        gap = c - b
+        
+        # Si hay un gap, distribuirlo
+        if gap > 0:
+            r = gap / 2
+            
+            # Ajustar end_frame de la tarea actual
+            adjusted_annotations[i]['end_frame'] = int(b + r)
+            
+            # Ajustar start_frame de la siguiente tarea
+            adjusted_annotations[i + 1]['start_frame'] = int(c - r)
+    
+    return adjusted_annotations

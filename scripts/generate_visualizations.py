@@ -22,8 +22,8 @@ def load_annotations(annotations_path: Path) -> dict:
     """Load annotations from JSON file."""
     if not annotations_path.exists():
         raise FileNotFoundError(
-            f"\nError: annotations.json not found at: {annotations_path}\n\n"
-            f"Please run generate_annotations.py first to create annotations."
+            f"\nError: {annotations_path.name} not found at: {annotations_path}\n\n"
+            f"Please run generate_annotations.py and run_processors_annotations.py first."
         )
     
     with open(annotations_path, 'r', encoding='utf-8') as f:
@@ -46,10 +46,10 @@ def create_annotations_from_dict(annotations_data: list[dict]) -> list[Annotatio
     return annotation_list
 
 
-def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4"):
-    """Process all episodes from annotations.json and generate annotated videos."""
+def process_episodes(dataset_dir: Path, video_filename: str = "top.mp4", annotations_file: str = "annotations_processed.json"):
+    """Process all episodes from annotations file and generate annotated videos."""
     
-    annotations_path = dataset_dir / "annotations.json"
+    annotations_path = dataset_dir / annotations_file
     annotations = load_annotations(annotations_path)
     
     if not annotations:
@@ -156,6 +156,13 @@ def main():
         help="Name of the video file in each episode directory (default: top.mp4)"
     )
     
+    parser.add_argument(
+        "--annotations-file",
+        type=str,
+        default="annotations_processed.json",
+        help="Name of the annotations file to use (default: annotations_processed.json)"
+    )
+    
     args = parser.parse_args()
     
     dataset_dir = Path(args.data_dir) / args.repo_id
@@ -169,7 +176,8 @@ def main():
     
     process_episodes(
         dataset_dir=dataset_dir,
-        video_filename=args.video_filename
+        video_filename=args.video_filename,
+        annotations_file=args.annotations_file
     )
 
 

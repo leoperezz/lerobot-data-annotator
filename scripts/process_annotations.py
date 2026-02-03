@@ -370,6 +370,13 @@ def main():
         help="Name of the output directory (default: output)"
     )
     
+    parser.add_argument(
+        "--annotations-file",
+        type=str,
+        default="annotations_processed.json",
+        help="Name of the annotations file to use (default: annotations_processed.json)"
+    )
+    
     args = parser.parse_args()
     
     # Setup paths
@@ -385,11 +392,11 @@ def main():
     
     output_dataset_dir = dataset_base_dir / args.output_name
     
-    annotations_path = dataset_base_dir / "annotations.json"
+    annotations_path = dataset_base_dir / args.annotations_file
     if not annotations_path.exists():
         parser.error(
-            f"annotations.json not found: {annotations_path}\n"
-            f"Please run generate_annotations.py first."
+            f"{args.annotations_file} not found: {annotations_path}\n"
+            f"Please run generate_annotations.py and run_processors_annotations.py first."
         )
     
     print("=" * 80)
