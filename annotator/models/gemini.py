@@ -35,7 +35,7 @@ class GeminiAnnotatorVLM(AnnotatorVLM):
         else:
             raise ValueError(f"Invalid mode: {self.mode}")
 
-    def annotate_video(self, video_path: str, task_description: str,names_subtasks: List[str]) -> Subtasks:
+    def annotate_video(self, video_path: str, task_description: str, names_subtasks: List[str], context: str = "") -> Subtasks:
         """Annotate a video."""
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video path {video_path} does not exist")
@@ -64,7 +64,7 @@ class GeminiAnnotatorVLM(AnnotatorVLM):
                         inline_data=types.Blob(data=video_bytes, mime_type=mime_type),
                         video_metadata=types.VideoMetadata(fps=self.fps)
                     ),
-                    types.Part(text=PROMPT_ANNOTATE_VIDEO.format(task_description=task_description, subtasks=names_subtasks))
+                    types.Part(text=PROMPT_ANNOTATE_VIDEO.format(task_description=task_description, subtasks=names_subtasks, context=context or "—"))
                 ]
             ),
             config = {

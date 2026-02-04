@@ -101,14 +101,23 @@ def convert_subtasks_to_annotations(subtasks: Subtasks, video_path: Path) -> Lis
     return annotations
 
 
-def load_subtasks_from_yaml(yaml_path: Path) -> List[str]:
-    """Load subtasks list from a YAML file."""
+def load_subtasks_from_yaml(yaml_path: Path) -> tuple[List[str], str]:
+    """Load subtasks list and optional context from a YAML file.
+    Returns (subtasks, context). context is '' if not present in YAML.
+    """
     with open(yaml_path, 'r') as f:
         data = yaml.safe_load(f)
+        context = ""
         if isinstance(data, list):
-            return data
+            return data, context
         elif isinstance(data, dict) and 'subtasks' in data:
-            return data['subtasks']
+            subtasks = data['subtasks']
+            context = data.get('context', "")
+            if isinstance(context, str):
+                pass
+            else:
+                context = str(context) if context is not None else ""
+            return subtasks, context
         else:
             raise ValueError("YAML file must contain a list or a dict with 'subtasks' key")
 
@@ -133,6 +142,7 @@ def annotate_episode_with_retry(annotator: GeminiAnnotatorVLM,
                                 video_path: Path, 
                                 task_description: str,
                                 subtasks: List[str],
+                                context: str = "",
                                 max_retries: int = 3,
                                 retry_delay: int = 15):
     """Annotate a single episode with retry logic."""
@@ -141,7 +151,8 @@ def annotate_episode_with_retry(annotator: GeminiAnnotatorVLM,
             result = annotator.annotate_video(
                 video_path=str(video_path),
                 task_description=task_description,
-                names_subtasks=subtasks
+                names_subtasks=subtasks,
+                context=context
             )
             return result
             #return shift_subtask_times(result, "00:01")
@@ -171,6 +182,7 @@ def validate_subtasks_file(dataset_dir: Path) -> Path:
             f"        ├── subtasks.yaml  ← Create this file\n"
             f"        └── annotations.json (will be generated)\n\n"
             f"Example subtasks.yaml content:\n"
+            f"  context: optional extra context for the annotator\n"
             f"  subtasks:\n"
             f"    - pick up object A\n"
             f"    - place object A in basket\n"
@@ -187,9 +199,11 @@ def process_episodes(dataset_dir: Path,
     """Process all episodes in the directory and generate annotations."""
     
     subtasks_path = validate_subtasks_file(dataset_dir)
-    subtasks = load_subtasks_from_yaml(subtasks_path)
+    subtasks, context = load_subtasks_from_yaml(subtasks_path)
     
     print(f"✓ Loaded {len(subtasks)} subtasks from: {subtasks_path}")
+    if context:
+        print(f"  Context: {context[:80]}{'...' if len(context) > 80 else ''}")
     for i, subtask in enumerate(subtasks, 1):
         print(f"  {i}. {subtask}")
     print()
@@ -244,7 +258,8 @@ def process_episodes(dataset_dir: Path,
                 annotator=annotator,
                 video_path=video_path,
                 task_description=task_description,
-                subtasks=subtasks
+                subtasks=subtasks,
+                context=context
             )
             
             # Convert subtasks to annotations with frame information

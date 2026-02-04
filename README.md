@@ -97,11 +97,13 @@ data/
 
 ### 3. Create Subtasks Configuration
 
-Before generating annotations, create a `subtasks.yaml` file in the dataset directory:
+Before generating annotations, create a `subtasks.yaml` file in the dataset directory. The file must contain a `subtasks` list; you may optionally add a `context` field with extra information for the annotator (e.g. scene description, robot setup, or task-specific notes).
 
 ```bash
 # Create subtasks.yaml in the dataset directory
 cat > data/organization-name/dataset-name/subtasks.yaml << EOF
+# Optional: extra context passed to the VLM (string)
+context: "Pick-and-place with a single arm; fruits on a table."
 subtasks:
   - pick up the object A
   - place the object A in the target location
@@ -109,6 +111,10 @@ subtasks:
   - place the object B in the target location
 EOF
 ```
+
+**YAML fields:**
+- **subtasks** (required): List of subtask names to detect in the video.
+- **context** (optional): Additional context string for the annotator (e.g. scene, setup, or task notes). Omit or leave empty if not needed.
 
 **Required File Structure:**
 ```
@@ -321,6 +327,7 @@ python scripts/parse_dataset.py \
 
 # 3. Create subtasks configuration
 cat > data/organization-name/dataset-name/subtasks.yaml << EOF
+context: "Optional extra context for the annotator."
 subtasks:
   - pick up the object A
   - place the object A in the target location

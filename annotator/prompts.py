@@ -5,6 +5,7 @@ You are an expert Video Annotation Assistant specialized in temporal segmentatio
 ### Context
 - **Overall Objective:** {task_description}
 - **Subtask Vocabulary:** {subtasks}
+- **Additional Context:** {context}
 
 ### Annotation Guidelines
 1. **Temporal Spacing:** Allow small gaps between consecutive subtasks to provide a reasonable buffer time.
