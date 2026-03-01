@@ -1,8 +1,12 @@
 # LeRobot Data Annotator
 
+![Hugging Face](https://img.shields.io/badge/🤗_Hugging_Face-Compatible-yellow) **Compatible con el formato [LeRobot](https://github.com/huggingface/lerobot)**
+
 LeRobot Data Annotator is a tool for automatically generating temporal subtask annotations from robotic trajectory videos. It uses Vision Language Models (VLMs) to segment videos into subtasks, enabling data augmentation and fine-grained task analysis for LeRobot datasets.
 
 ## Overview
+
+![Annotator demo](media/annotator.gif)
 
 The tool processes LeRobot v3 datasets through an eight-step pipeline:
 
