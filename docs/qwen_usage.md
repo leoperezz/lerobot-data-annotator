@@ -60,11 +60,24 @@ From the **repository root**, run (adjust the model path if you used a different
 vllm serve models/Qwen/Qwen3.5-4B --served-model-name "Qwen/Qwen3.5-4B" --port 8000
 ```
 
+To send **local videos** from the client, vLLM must be allowed to read from your filesystem. Add `--allowed-local-media-path` with a directory that contains your videos (e.g. the repo root):
+
+```bash
+vllm serve models/Qwen/Qwen3.5-4B --served-model-name "Qwen/Qwen3.5-4B" --port 8000 \
+  --allowed-local-media-path /path/to/lerobot-data-annotator
+```
+
 Wait until the model is loaded and you see something like “Application startup complete”. The API will be available at `http://localhost:8000/v1`.
 
 ## 4. Run the client
 
 In **another terminal**, with the server running:
+
+```bash
+python test/qwen/inference.py
+```
+
+To use a **local video**, edit `VIDEO_PATH` and `PROMPT` at the top of `test/qwen/inference.py`, then run:
 
 ```bash
 python test/qwen/inference.py
@@ -81,7 +94,7 @@ The script uses the recommended sampling parameters for general thinking mode: `
 | 0 | Download model: `python utils/qwen/download_model.py` (use `--repo-id` to pick another model) |
 | 1 | `uv pip install -U vllm --torch-backend=auto --extra-index-url https://wheels.vllm.ai/nightly` |
 | 2 | Set `.env` with `OPENAI_BASE_URL` and `OPENAI_API_KEY=EMPTY` |
-| 3 | Terminal 1: `vllm serve models/Qwen/Qwen3.5-4B --served-model-name "Qwen/Qwen3.5-4B" --port 8000` |
-| 4 | Terminal 2: `python test/qwen/inference.py` |
+| 3 | Terminal 1: `vllm serve ... --port 8000` (add `--allowed-local-media-path /path/to/repo` for local videos) |
+| 4 | Terminal 2: `python test/qwen/inference.py` (edit `VIDEO_PATH` and `PROMPT` in the script for your video) |
 
 If the model name shown by vLLM at startup differs from `Qwen/Qwen3.5-4B`, update the `model="Qwen/Qwen3.5-4B"` argument in `inference.py` to match. If you downloaded a different model with `--repo-id`, use that model path and name when serving and in `inference.py`.
