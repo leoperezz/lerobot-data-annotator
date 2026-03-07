@@ -124,3 +124,4 @@ dmypy.json
 
 # AutoAnnotator
 data/
+models/

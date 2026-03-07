@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 keywords = ["robotics", "ai", "machine-learning", "physical-intelligence"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -38,9 +38,10 @@ dependencies = [
     "pyyaml>=6.0.0",
     # LeRobot from GitHub
     "lerobot @ git+https://github.com/huggingface/lerobot.git",
-    "huggingface-hub>=0.34.2,<0.36.0",
+    "huggingface-hub>=0.34.2",
     "numpy>=1.24.0",
     "rich>=13.0.0",
+    "transformers>=5.3.0"
 ]
 
 # Optional dependencies
