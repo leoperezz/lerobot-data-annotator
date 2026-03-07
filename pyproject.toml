@@ -36,12 +36,13 @@ dependencies = [
     "pydantic>=2.0.0",
     "pyarrow>=14.0.0",
     "pyyaml>=6.0.0",
-    # LeRobot from GitHub
+    # LeRobot from GitHub (PyPI lerobot pins hf-hub<0.36, conflicts with transformers>=5.3)
     "lerobot @ git+https://github.com/huggingface/lerobot.git",
     "huggingface-hub>=0.34.2",
     "numpy>=1.24.0",
     "rich>=13.0.0",
-    "transformers>=5.3.0"
+    "transformers>=5.3.0",
+    "openai>=2.26.0",
 ]
 
 # Optional dependencies

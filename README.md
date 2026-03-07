@@ -21,8 +21,16 @@ The tool processes LeRobot v3 datasets through an eight-step pipeline:
 
 ## Installation
 
+This project uses [uv](https://docs.astral.sh/uv/) only for package management. Install the package in editable mode with:
+
 ```bash
-pip install -e .
+uv pip install -e .
+```
+
+**Note:** The `lerobot` dependency is installed from GitHub. If you get a Git LFS error (e.g. "Smudge error" or "remote missing object"), skip LFS when installing so the clone does not fetch test artifacts:
+
+```bash
+GIT_LFS_SKIP_SMUDGE=1 uv pip install -e .
 ```
 
 ## Setup

@@ -1,14 +1,22 @@
+from openai import OpenAI
 import dotenv
-
 dotenv.load_dotenv()
+# Configured by environment variables
+client = OpenAI()
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+messages = [
+    {"role": "user", "content": "Type \"I love Qwen3.5\" backwards"},
+]
 
-model_name = "Qwen/Qwen3.5-4B"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForCausalLM.from_pretrained(model_name)
-
-prompt = "Hello, how are you?"
-inputs = tokenizer(prompt, return_tensors="pt")
-outputs = model.generate(**inputs)
-print(outputs)
+chat_response = client.chat.completions.create(
+    model="Qwen/Qwen3.5-4B",
+    messages=messages,
+    max_tokens=81920,
+    temperature=1.0,
+    top_p=0.95,
+    presence_penalty=1.5,
+    extra_body={
+        "top_k": 20,
+    }, 
+)
+print("Chat response:", chat_response)
