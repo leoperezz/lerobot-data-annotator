@@ -62,8 +62,10 @@ def convert_subtasks_to_annotations(subtasks: Subtasks, video_path: Path) -> Lis
     """
     fps, total_frames = get_video_info(video_path)
     annotations = []
+
+    present_subtasks = [s for s in subtasks.subtasks if s.present]
     
-    for i, subtask in enumerate(subtasks.subtasks):
+    for i, subtask in enumerate(present_subtasks):
         # Convert times to seconds
         start_seconds = time_to_seconds(subtask.start_time)
         end_seconds = time_to_seconds(subtask.end_time)
@@ -77,7 +79,7 @@ def convert_subtasks_to_annotations(subtasks: Subtasks, video_path: Path) -> Lis
             # First subtask always starts at frame 0
             start_frame = 0
         
-        if i == len(subtasks.subtasks) - 1:
+        if i == len(present_subtasks) - 1:
             # Last subtask always ends at the last frame
             end_frame = total_frames - 1
         

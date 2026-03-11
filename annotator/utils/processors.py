@@ -18,12 +18,15 @@ def validate_time_format(time_str: str) -> bool:
 def time_to_seconds(time_str: str) -> int:
     parts = time_str.split(":")
     if len(parts) == 2:
-        minutes, seconds = map(int, parts)
+        minutes = int(float(parts[0]))
+        seconds = int(float(parts[1]))
         if seconds >= 60:
             raise ValueError(f"Seconds must be less than 60: {time_str}")
         return minutes * 60 + seconds
     elif len(parts) == 3:
-        hours, minutes, seconds = map(int, parts)
+        hours = int(float(parts[0]))
+        minutes = int(float(parts[1]))
+        seconds = int(float(parts[2]))
         if minutes >= 60 or seconds >= 60:
             raise ValueError(f"Minutes and seconds must be less than 60: {time_str}")
         return hours * 3600 + minutes * 60 + seconds

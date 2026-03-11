@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 
 class Subtask(BaseModel):
     name: str
+    present: bool = True
     start_time: str
     end_time: str
 

@@ -19,15 +19,21 @@ You are an expert Video Annotation Assistant specialized in temporal segmentatio
 4. **Sequence:** List subtasks in the exact chronological order they appear in the video.
 
 ### Formatting Rules
-- Output **only** the list of subtasks. Do not include introductory text or explanations.
-- Use the format: `Subtask Name: mm:ss - mm:ss`
-- If a subtask from the vocabulary is not visible in the video, write: `Subtask Name: Not present`
+- You must return a **JSON object** following the provided schema exactly.
+- `start_time` and `end_time` must be strings in **`MM:SS`** format where **both minutes and seconds are whole integers** (e.g. `"00:04"`, `"01:23"`). No decimals, no fractions, no milliseconds.
+- If a subtask from the vocabulary is **not visible** in the video, set `present: false` and use `"00:00"` for both `start_time` and `end_time`.
 
-### Example Output
-Move Object: 00:00 - 00:43
-Place Object: 00:45 - 01:18
-Return to Home: 01:20 - 02:13
-Calibration: Not present
+### Example Output (JSON)
+```json
+{{
+  "subtasks": [
+    {{"name": "Move Object",      "present": true,  "start_time": "00:00", "end_time": "00:43"}},
+    {{"name": "Place Object",     "present": true,  "start_time": "00:45", "end_time": "01:18"}},
+    {{"name": "Return to Home",   "present": true,  "start_time": "01:20", "end_time": "02:13"}},
+    {{"name": "Calibration",      "present": false, "start_time": "00:00", "end_time": "00:00"}}
+  ]
+}}
+```
 
 ### Your Task
 Based on the video provided, generate the timestamp list now:
