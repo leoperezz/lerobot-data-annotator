@@ -315,7 +315,7 @@ The following Gemini models are supported:
 - `gemini-robotics-er-1.5-preview`
 - `gemini-3-flash-preview`
 
-Si quieres usar **Qwen 3.5**, consulta [docs/qwen_usage.md](docs/qwen_usage.md) para la configuración y uso con servidor local (API compatible con OpenAI).
+Since we want to run the models over large datasets use an opensource model is actually god idea, **Qwen 3.5**, ask [docs/qwen_usage.md](docs/qwen_usage.md) for more information. 
 
 ## Output
 
