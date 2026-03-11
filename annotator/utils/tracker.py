@@ -14,14 +14,17 @@ class UsageTracker:
         self.total_requests += 1
 
     def add_reasoning_tokens(self, tokens: int):
+        tokens = tokens or 0
         self.reasoning_tokens += tokens
         self.total_tokens += tokens
 
     def add_input_tokens(self, tokens: int):
+        tokens = tokens or 0
         self.input_tokens += tokens
         self.total_tokens += tokens
     
     def add_output_tokens(self, tokens: int):
+        tokens = tokens or 0
         self.output_tokens += tokens
         self.total_tokens += tokens
 

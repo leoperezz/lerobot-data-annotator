@@ -74,9 +74,9 @@ class GeminiAnnotatorVLM(AnnotatorVLM):
             }
         )
         self.usage_tracker.add_request()
-        self.usage_tracker.add_reasoning_tokens(response.usage_metadata.prompt_token_count)
-        self.usage_tracker.add_output_tokens(response.usage_metadata.candidates_token_count)
-        self.usage_tracker.add_reasoning_tokens(response.usage_metadata.thoughts_token_count)
+        self.usage_tracker.add_input_tokens(response.usage_metadata.prompt_token_count or 0)
+        self.usage_tracker.add_output_tokens(response.usage_metadata.candidates_token_count or 0)
+        self.usage_tracker.add_reasoning_tokens(response.usage_metadata.thoughts_token_count or 0)
 
         return Subtasks.model_validate_json(response.text)
 
