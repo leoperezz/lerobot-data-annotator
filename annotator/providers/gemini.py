@@ -1,4 +1,4 @@
-from annotator.models.base import AnnotatorVLM
+from annotator.providers.base import AnnotatorVLM
 from typing import Literal, Optional
 from google import genai
 from google.genai import types

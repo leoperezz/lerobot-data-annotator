@@ -10,6 +10,11 @@ Example usage:
         --repo-id organization-name/dataset-name \
         --fps 2 \
         --model gemini-robotics-er-1.5-preview
+
+    python scripts/generate_annotations.py \
+        --repo-id organization-name/dataset-name \
+        --model "Qwen/Qwen3.5-4B" \
+        --base-url "http://localhost:8000/v1"
 """
 
 import json
@@ -20,8 +25,9 @@ from typing import List, Optional
 import yaml
 from tqdm import tqdm
 import cv2
-from annotator.models.base import AnnotatorVLM
-from annotator.models.gemini import GeminiAnnotatorVLM
+from annotator.providers.base import AnnotatorVLM
+from annotator.providers.gemini import GeminiAnnotatorVLM
+from annotator.providers.qwen import QwenAnnotatorVLM
 from annotator.utils.processors import shift_subtask_times, time_to_seconds
 from annotator.structured import Annotation, Subtasks
 
@@ -140,7 +146,7 @@ def save_annotations(output_path: Path, annotations: dict, usage_stats: dict):
         json.dump(output_data, f, indent=2, ensure_ascii=False)
 
 
-def annotate_episode_with_retry(annotator: GeminiAnnotatorVLM, 
+def annotate_episode_with_retry(annotator: AnnotatorVLM, 
                                 video_path: Path, 
                                 task_description: str,
                                 subtasks: List[str],
@@ -194,10 +200,11 @@ def validate_subtasks_file(dataset_dir: Path) -> Path:
     return subtasks_path
 
 
-def process_episodes(dataset_dir: Path, 
+def process_episodes(dataset_dir: Path,
                      fps_vlm: int,
                      model_name: str,
-                     video_filename: str = "top.mp4"):
+                     video_filename: str = "top.mp4",
+                     base_url: str = "http://localhost:8000/v1"):
     """Process all episodes in the directory and generate annotations."""
     
     subtasks_path = validate_subtasks_file(dataset_dir)
@@ -210,7 +217,10 @@ def process_episodes(dataset_dir: Path,
         print(f"  {i}. {subtask}")
     print()
     
-    annotator = GeminiAnnotatorVLM(model_name=model_name, fps=fps_vlm)
+    if model_name in QwenAnnotatorVLM.SUPPORTED_MODELS:
+        annotator = QwenAnnotatorVLM(model_name=model_name, fps=fps_vlm, base_url=base_url)
+    else:
+        annotator = GeminiAnnotatorVLM(model_name=model_name, fps=fps_vlm)
     
     episodes_dir = dataset_dir / "selected_episodes"
     
@@ -327,14 +337,29 @@ def main():
         help="Frames per second for VLM processing (default: 2)"
     )
     
+    _all_models = GeminiAnnotatorVLM.SUPPORTED_MODELS + QwenAnnotatorVLM.SUPPORTED_MODELS
     parser.add_argument(
         "--model",
         type=str,
         default="gemini-robotics-er-1.5-preview",
-        choices=AnnotatorVLM.SUPPORTED_MODELS,
-        help=f"Model to use for annotation (default: gemini-robotics-er-1.5-preview)"
+        choices=_all_models,
+        help=(
+            "Model to use for annotation (default: gemini-robotics-er-1.5-preview). "
+            f"Gemini models: {', '.join(GeminiAnnotatorVLM.SUPPORTED_MODELS)}. "
+            f"Qwen (local vLLM) models: {', '.join(QwenAnnotatorVLM.SUPPORTED_MODELS)}."
+        )
     )
-    
+
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        default="http://localhost:8000/v1",
+        help=(
+            "Base URL of the local vLLM server (only used for Qwen models). "
+            "Default: http://localhost:8000/v1"
+        )
+    )
+
     parser.add_argument(
         "--video-filename",
         type=str,
@@ -357,7 +382,8 @@ def main():
         dataset_dir=dataset_dir,
         fps_vlm=args.fps_vlm,
         model_name=args.model,
-        video_filename=args.video_filename
+        video_filename=args.video_filename,
+        base_url=args.base_url,
     )
 
 

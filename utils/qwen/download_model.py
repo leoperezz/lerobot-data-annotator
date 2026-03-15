@@ -13,7 +13,7 @@ from pathlib import Path
 
 from huggingface_hub import snapshot_download
 
-DEFAULT_REPO_ID = "Qwen/Qwen3.5-4B"
+DEFAULT_REPO_ID = "Qwen/Qwen3.5-9B"
 DEFAULT_MODELS_DIR = "models"
 
 

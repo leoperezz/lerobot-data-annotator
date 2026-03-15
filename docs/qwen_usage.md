@@ -57,14 +57,16 @@ export OPENAI_API_KEY="EMPTY"
 From the **repository root**, run (adjust the model path if you used a different `--repo-id`):
 
 ```bash
+export CUDA_VISIBLE_DEVICES=1
 vllm serve models/Qwen/Qwen3.5-4B --served-model-name "Qwen/Qwen3.5-4B" --port 8000
 ```
 
 To send **local videos** from the client, vLLM must be allowed to read from your filesystem. Add `--allowed-local-media-path` with a directory that contains your videos (e.g. the repo root):
 
 ```bash
+export CUDA_VISIBLE_DEVICES=1
 vllm serve models/Qwen/Qwen3.5-4B --served-model-name "Qwen/Qwen3.5-4B" --port 8000 \
-  --allowed-local-media-path /path/to/lerobot-data-annotator
+  --allowed-local-media-path "$(git rev-parse --show-toplevel)"
 ```
 
 Wait until the model is loaded and you see something like “Application startup complete”. The API will be available at `http://localhost:8000/v1`.
